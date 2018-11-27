@@ -29,6 +29,10 @@ if __name__ == '__main__':
             os.makedirs(package_folder)
 
         versions = app['versions']
+
+        if len(versions) < 1:
+            continue
+            
         if args.last:
             versions = [versions[0]]
 
