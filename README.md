@@ -6,3 +6,4 @@ Requires Python libraries:
 
 - `urllib3`
 - `bs4`
+- `html5lib`

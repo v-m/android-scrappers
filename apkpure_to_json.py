@@ -12,10 +12,10 @@ import urllib.parse as urlparse
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 BASE_URL = "http://apkpure.com/search-page?q={search_terms}&region={region}&begin={page}"
+PER_PAGE = 10
 
-
-def build_url(search_criteria, region="US", page=0):
-    return BASE_URL.format(search_terms=search_criteria.replace(" ", "+"), region=region, page=page * 15)
+def build_url(search_criteria, region="US", page=0, increment=10):
+    return BASE_URL.format(search_terms=search_criteria.replace(" ", "+"), region=region, page=page*increment)
 
 
 def build_app_page_url(rel_link):
@@ -64,26 +64,25 @@ def parse_versions(soup):
 
 
 def find_nb_entries(keyword, region="US", progress_fct=None):
-    page = 0
-    total = 0
+    _page = 0
+    _apps = set()
 
     while True:
-        soup_element = bs4_parse_url(build_url(keyword, region, page))
+        _soup_element = bs4_parse_url(build_url(keyword, region, _page, PER_PAGE))
 
-        if soup_element.body.text.strip() == "":
+        if _soup_element.body.text.strip() == "":
             break
 
-        nb_in_page = len(soup_element.select("dl.search-dl"))
-        total += nb_in_page
+        for _app_entry in _soup_element.select("dl.search-dl"):
+            _dt_element = _app_entry.select("dt")[0]
+            title = _dt_element.select("a")[0]['title']
+            _apps.add(title)
 
-        # if nb_in_page < 14:
-        #     break
-        # else:
         if progress_fct:
-            progress_fct(total)
-        page += 1
+            progress_fct(len(_apps))
+        _page += 1
 
-    return total, page - 1
+    return len(apps), _page - 1
 
 
 def persist_apps(file, apps):
@@ -112,7 +111,6 @@ if __name__ == '__main__':
         "_source": "APKPure",
         "_search_term": args.terms,
         "_nb_apps": None,
-        "_nb_pages": None,
         "_date": str(datetime.datetime.now()),
         "_author": args.author,
         "_elapsed": None,
@@ -131,20 +129,28 @@ if __name__ == '__main__':
 
     persist_apps(args.file, apps)
 
+    apps_set = set()
+
     for page in range(nb_pages):
         print("Processing page {page} of {total_pages}:".format(page=page, total_pages=nb_pages), end=" ", flush=True)
-        soup = bs4_parse_url(build_url(args.terms, args.region, page))
+        soup = bs4_parse_url(build_url(args.terms, args.region, page, PER_PAGE))
 
         for app_entry in soup.select("dl.search-dl"):
-            print("X", end="", flush=True)
 
             dt_element = app_entry.select("dt")[0]
+            app_title = dt_element.select("a")[0]['title']
+
+            print("X" if app_title not in apps_set else "-", end="", flush=True)
+
+            if app_title in apps_set:
+                continue
+
             dd_element = app_entry.select("dd")[0]
 
             app_href = dt_element.select("a")[0]['href']
 
             app = {
-                "title": dt_element.select("a")[0]['title'],
+                "title": app_title,
                 "developer": dd_element.select("p > a")[1].text,
                 "icon": dt_element.select("a > img")[0]['src'],
                 "href": build_app_page_url(app_href),
@@ -156,6 +162,7 @@ if __name__ == '__main__':
             apps['apps'].append(app)
             apps['_elapsed'] = str(datetime.datetime.now() - start_time)
             persist_apps(args.file, apps)
+            apps_set.add(app_title)
 
         print("")
         page += 1
