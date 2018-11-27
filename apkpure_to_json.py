@@ -82,7 +82,7 @@ def find_nb_entries(keyword, region="US", progress_fct=None):
             progress_fct(len(_apps))
         _page += 1
 
-    return len(apps), _page - 1
+    return len(_apps), _page - 1
 
 
 def persist_apps(file, apps):
@@ -122,10 +122,9 @@ if __name__ == '__main__':
     print("Determining # entries...", end=" ", file=sys.stderr, flush=True)
 
     nb_apps, nb_pages = find_nb_entries(args.terms, args.region, progress_det)
-    apps["_nb_pages"] = nb_pages
     apps["_nb_apps"] = nb_apps
 
-    print("\nDone. Total pages: {}".format(apps['_nb_pages']))
+    print("\nDone. Total apps: {}".format(nb_apps))
 
     persist_apps(args.file, apps)
 
@@ -163,7 +162,8 @@ if __name__ == '__main__':
                 page_soup = bs4_parse_url(app['href'])
                 current_version = page_soup.select_one("div.details-sdk > span").text.strip()
                 current_download = page_soup.select_one("div.ny-down > a")['href']
-                app['versions'] = [{"name": current_version, "href": current_download}]
+                app['versions'] = [{"name": current_version,
+                                    "href": find_download_link(build_app_page_url(current_download))}]
 
             apps['apps'].append(app)
             apps['_elapsed'] = str(datetime.datetime.now() - start_time)
