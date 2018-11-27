@@ -8,6 +8,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("json", type=str, help="JSON File")
     parser.add_argument("working_folder", type=str, help="Where to download stuffs")
+    parser.add_argument("--last", action='store_true', help="Download only last version")
 
     args = parser.parse_args()
 
@@ -27,7 +28,11 @@ if __name__ == '__main__':
         if not os.path.exists(package_folder):
             os.makedirs(package_folder)
 
-        for version in app['versions']:
+        versions = app['versions']
+        if args.last:
+            versions = [versions[0]]
+
+        for version in versions:
             version_folder = os.path.join(package_folder, version['name'])
 
             if not os.path.exists(version_folder):
