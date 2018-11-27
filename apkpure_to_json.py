@@ -136,7 +136,6 @@ if __name__ == '__main__':
         soup = bs4_parse_url(build_url(args.terms, args.region, page, PER_PAGE))
 
         for app_entry in soup.select("dl.search-dl"):
-
             dt_element = app_entry.select("dt")[0]
             app_title = dt_element.select("a")[0]['title']
 
@@ -159,6 +158,13 @@ if __name__ == '__main__':
 
             versions_soup = bs4_parse_url(build_app_download_page_url(app_href))
             app['versions'] = parse_versions(versions_soup.select("div.ver > ul > li > a"))
+
+            if len(app['versions']) == 0:
+                page_soup = bs4_parse_url(app['href'])
+                current_version = page_soup.select_one("div.details-sdk > span").text.strip()
+                current_download = page_soup.select_one("div.ny-down > a")['href']
+                app['versions'] = [{"name": current_version, "href": current_download}]
+
             apps['apps'].append(app)
             apps['_elapsed'] = str(datetime.datetime.now() - start_time)
             persist_apps(args.file, apps)
