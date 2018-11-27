@@ -1,0 +1,38 @@
+import argparse
+import json
+import os
+import subprocess
+import sys
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("json", type=str, help="JSON File")
+    parser.add_argument("working_folder", type=str, help="Where to download stuffs")
+
+    args = parser.parse_args()
+
+    with open(args.json) as fp:
+        js = json.load(fp)
+
+    if not os.path.exists(args.working_folder):
+        os.makedirs(args.working_folder)
+    elif not os.path.isdir(args.working_folder):
+        print("Working dir exists and is not a directory!")
+        sys.exit(1)
+
+    for app in js['apps']:
+        package_name = app['href'].split("/")[-1]
+        package_folder = os.path.join(args.working_folder, "{}_app".format(package_name))
+
+        if not os.path.exists(package_folder):
+            os.makedirs(package_folder)
+
+        for version in app['versions']:
+            version_folder = os.path.join(package_folder, version['name'])
+
+            if not os.path.exists(version_folder):
+                os.makedirs(version_folder)
+            elif len(os.listdir(version_folder)) > 0:
+                continue
+
+            subprocess.run(['curl', '-O', '-L', '-J', '-f', version['download_link']], cwd=version_folder)
