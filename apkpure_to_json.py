@@ -37,7 +37,7 @@ def find_download_link(href):
     return soup_element.select_one("#download_link")['href']
 
 
-def parse_versions(soup):
+def parse_versions(soup, only_last=False):
     ret = []
 
     for soup_version in soup:
@@ -59,6 +59,9 @@ def parse_versions(soup):
             "download_link": find_download_link(href)
         }
         ret.append(version)
+
+        if only_last:
+            break
 
     return ret
 
@@ -98,6 +101,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("terms", type=str, help="The search keyword")
     parser.add_argument("file", type=str, help="The produced file")
+    parser.add_argument("--latest", action='store_true', help="Consider only the latest version of apps")
     parser.add_argument("--author", type=str, help="The scrapper author string", default="Anonymous")
     parser.add_argument("--region", type=str, default="US", help="The country code region")
 
@@ -152,11 +156,14 @@ if __name__ == '__main__':
                 "developer": dd_element.select("p > a")[1].text,
                 "icon": dt_element.select("a > img")[0]['src'],
                 "href": build_app_page_url(app_href),
+                "nb_versions": -1,
                 "versions": None
             }
 
             versions_soup = bs4_parse_url(build_app_download_page_url(app_href))
-            app['versions'] = parse_versions(versions_soup.select("div.ver > ul > li > a"))
+            versions_soup = versions_soup.select("div.ver > ul > li > a")
+            app['nb_versions'] = len(versions_soup)
+            app['versions'] = parse_versions(versions_soup, args.latest)
 
             if len(app['versions']) == 0:
                 page_soup = bs4_parse_url(app['href'])
