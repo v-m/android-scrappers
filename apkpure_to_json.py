@@ -42,10 +42,9 @@ def parse_versions(soup, only_last=False):
 
     for soup_version in soup:
         href = build_app_page_url(soup_version['href'])
-
         details = soup_version.select_one("div.ver-item")
-
         version_metadata = details.select_one("i.ver-item-m")
+
         version = {
             "name": details.select_one("span.ver-item-n").text,
             "href": href,
@@ -160,17 +159,24 @@ if __name__ == '__main__':
                 "versions": None
             }
 
+            success = True
             versions_soup = bs4_parse_url(build_app_download_page_url(app_href))
             versions_soup = versions_soup.select("div.ver > ul > li > a")
             app['nb_versions'] = len(versions_soup)
             app['versions'] = parse_versions(versions_soup, args.latest)
 
             if len(app['versions']) == 0:
-                page_soup = bs4_parse_url(app['href'])
-                current_version = page_soup.select_one("div.details-sdk > span").text.strip()
-                current_download = page_soup.select_one("div.ny-down > a")['href']
-                app['versions'] = [{"name": current_version,
-                                    "href": find_download_link(build_app_page_url(current_download))}]
+                print("No version found for: {}".format(app['href']), file=sys.stderr)
+                continue
+                # page_soup = bs4_parse_url(app['href'])
+                # current_version = page_soup.select_one("div.details-sdk > span").text.strip()
+                # current_download = page_soup.select_one("div.ny-down > a")['href']
+                #
+                # try:
+                #     app['versions'] = [{"name": current_version,
+                #                         "href": find_download_link(build_app_page_url(current_download))}]
+                # except TypeError:
+                #     app['versions'] = []
 
             apps['apps'].append(app)
             apps['_elapsed'] = str(datetime.datetime.now() - start_time)
