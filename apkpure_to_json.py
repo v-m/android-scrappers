@@ -2,7 +2,6 @@
 
 import datetime
 import json
-import argparse
 import sys
 
 import urllib3
@@ -11,11 +10,27 @@ import urllib.parse as urlparse
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-BASE_URL = "http://apkpure.com/search-page?q={search_terms}&region={region}&begin={page}"
-PER_PAGE = 10
+BASE_URL = "http://apkpure.com/"
+SEARCH_PACKAGE_URL = 'https://apkpure.com/dl/{}'
 
-def build_url(search_criteria, region="US", page=0, increment=10):
-    return BASE_URL.format(search_terms=search_criteria.replace(" ", "+"), region=region, page=page*increment)
+
+def find_package_page(package_name):
+    http = urllib3.PoolManager()
+    r = http.request("GET", SEARCH_PACKAGE_URL.format(package_name))
+    return r.geturl()
+
+
+def pull_page_info(app_href):
+    try:
+        soup = bs4_parse_url(build_app_page_url(app_href))
+
+        title = soup.select_one("div.title-like > h1").text
+        author = soup.select_one("div.details-author span").text
+        icon = soup.select_one("dl.ny-dl div.icon img")['src']
+
+        return title, author, icon
+    except AttributeError:
+        return None
 
 
 def build_app_page_url(rel_link):
@@ -65,26 +80,26 @@ def parse_versions(soup, only_last=False):
     return ret
 
 
-def find_nb_entries(keyword, region="US", progress_fct=None):
-    _page = 0
-    _apps = set()
+def proceed_app(title, developer, icon, relative_href, latest=False):
+    app = {
+        "title": title,
+        "developer": developer,
+        "icon": icon,
+        "href": build_app_page_url(relative_href),
+        "nb_versions": -1,
+        "versions": None
+    }
 
-    while True:
-        _soup_element = bs4_parse_url(build_url(keyword, region, _page, PER_PAGE))
+    versions_soup = bs4_parse_url(build_app_download_page_url(relative_href))
+    versions_soup = versions_soup.select("div.ver > ul > li > a")
+    app['nb_versions'] = len(versions_soup)
+    app['versions'] = parse_versions(versions_soup, latest)
 
-        if _soup_element.body.text.strip() == "":
-            break
+    if len(app['versions']) == 0:
+        print("No version found for: {}".format(app['href']), file=sys.stderr)
+        return None
 
-        for _app_entry in _soup_element.select("dl.search-dl"):
-            _dt_element = _app_entry.select("dt")[0]
-            title = _dt_element.select("a")[0]['title']
-            _apps.add(title)
-
-        if progress_fct:
-            progress_fct(len(_apps))
-        _page += 1
-
-    return len(_apps), _page - 1
+    return app
 
 
 def persist_apps(file, apps):
@@ -92,96 +107,18 @@ def persist_apps(file, apps):
         json.dump(apps, fp)
 
 
-def progress_det(nb):
-    print("{}...".format(nb), end="", flush=True)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("terms", type=str, help="The search keyword")
-    parser.add_argument("file", type=str, help="The produced file")
-    parser.add_argument("--latest", action='store_true', help="Consider only the latest version of apps")
-    parser.add_argument("--author", type=str, help="The scrapper author string", default="Anonymous")
-    parser.add_argument("--region", type=str, default="US", help="The country code region")
-
-    args = parser.parse_args()
-
-    page = 0
-
+def init(file, nb_apps, author):
     start_time = datetime.datetime.now()
 
     apps = {
         "_source": "APKPure",
-        "_search_term": args.terms,
-        "_nb_apps": None,
+        "_nb_apps": nb_apps,
         "_date": str(datetime.datetime.now()),
-        "_author": args.author,
+        "_author": author,
         "_elapsed": None,
         "apps": []
     }
 
-    persist_apps(args.file, apps)
+    persist_apps(file, apps)
 
-    print("Determining # entries...", end=" ", file=sys.stderr, flush=True)
-
-    nb_apps, nb_pages = find_nb_entries(args.terms, args.region, progress_det)
-    apps["_nb_apps"] = nb_apps
-
-    print("\nDone. Total apps: {}".format(nb_apps))
-
-    persist_apps(args.file, apps)
-
-    apps_set = set()
-
-    for page in range(nb_pages):
-        print("Processing page {page} of {total_pages}:".format(page=page, total_pages=nb_pages), end=" ", flush=True)
-        soup = bs4_parse_url(build_url(args.terms, args.region, page, PER_PAGE))
-
-        for app_entry in soup.select("dl.search-dl"):
-            dt_element = app_entry.select("dt")[0]
-            app_title = dt_element.select("a")[0]['title']
-
-            print("X" if app_title not in apps_set else "-", end="", flush=True)
-
-            if app_title in apps_set:
-                continue
-
-            dd_element = app_entry.select("dd")[0]
-
-            app_href = dt_element.select("a")[0]['href']
-
-            app = {
-                "title": app_title,
-                "developer": dd_element.select("p > a")[1].text,
-                "icon": dt_element.select("a > img")[0]['src'],
-                "href": build_app_page_url(app_href),
-                "nb_versions": -1,
-                "versions": None
-            }
-
-            success = True
-            versions_soup = bs4_parse_url(build_app_download_page_url(app_href))
-            versions_soup = versions_soup.select("div.ver > ul > li > a")
-            app['nb_versions'] = len(versions_soup)
-            app['versions'] = parse_versions(versions_soup, args.latest)
-
-            if len(app['versions']) == 0:
-                print("No version found for: {}".format(app['href']), file=sys.stderr)
-                continue
-                # page_soup = bs4_parse_url(app['href'])
-                # current_version = page_soup.select_one("div.details-sdk > span").text.strip()
-                # current_download = page_soup.select_one("div.ny-down > a")['href']
-                #
-                # try:
-                #     app['versions'] = [{"name": current_version,
-                #                         "href": find_download_link(build_app_page_url(current_download))}]
-                # except TypeError:
-                #     app['versions'] = []
-
-            apps['apps'].append(app)
-            apps['_elapsed'] = str(datetime.datetime.now() - start_time)
-            persist_apps(args.file, apps)
-            apps_set.add(app_title)
-
-        print("")
-        page += 1
+    return apps, start_time
