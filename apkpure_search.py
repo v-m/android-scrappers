@@ -1,9 +1,13 @@
+"""Download APKs from APKPure for a specific keyword serarch term"""
+
+__author__ = "Vincenzo Musco (http://www.vmusco.com)"
+__date__ = "2018-11-27"
+
 import argparse
 import datetime
 import sys
 
-from apkpure_to_json import init, bs4_parse_url, persist_apps, build_app_download_page_url, parse_versions, \
-    build_app_page_url, proceed_app
+from apkpure_to_json import init, bs4_parse_url, persist_apps, proceed_app
 
 BASE_URL = "http://apkpure.com/search-page?q={search_terms}&region={region}&begin={page}"
 PER_PAGE = 10
