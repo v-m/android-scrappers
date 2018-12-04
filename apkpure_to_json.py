@@ -103,7 +103,13 @@ def proceed_app(title, developer, icon, relative_href, latest=False):
     return app
 
 
-def persist_apps(file, apps):
+def persist_apps(file, apps, start_time=None):
+    if start_time is not None:
+        run_time = datetime.datetime.now() - start_time
+        if apps['_elapsed'] is None:
+            apps['_elapsed'] = 0
+        apps['_elapsed'] += run_time.seconds
+
     with open(file, "w") as fp:
         json.dump(apps, fp)
 
@@ -124,7 +130,7 @@ def init(file, nb_apps, author):
         "_nb_apps": nb_apps,
         "_date": str(datetime.datetime.now()),
         "_author": author,
-        "_elapsed": None,
+        "_elapsed": 0,
         "apps": {}
     }
 

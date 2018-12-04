@@ -1,4 +1,5 @@
 """Download app informations (and download link) from APKPure for a specific list of app packages"""
+import datetime
 import os
 
 __author__ = "Vincenzo Musco (http://www.vmusco.com)"
@@ -24,6 +25,8 @@ if __name__ == '__main__':
 
     apps = load_apps(args.file)
 
+    start_time_script = datetime.datetime.now()
+
     if apps is None:
         apps, start_time = init(args.file, len(considered_apps), args.author)
         apps["_packages"] = list(set(considered_apps))
@@ -35,7 +38,7 @@ if __name__ == '__main__':
 
     considered_apps = apps["_packages"]
 
-    for index, package in enumerate(considered_apps):
+    for index, package in enumerate(sorted(considered_apps)):
         print("[{}/{}] Scrapping {}".format(index + 1, len(considered_apps), package), end='')
 
         if package in apps['apps']:
@@ -57,4 +60,4 @@ if __name__ == '__main__':
         else:
             print("...Error")
 
-        persist_apps(args.file, apps)
+        persist_apps(args.file, apps, start_time_script)

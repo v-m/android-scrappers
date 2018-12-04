@@ -1,4 +1,6 @@
-# apkpure-scrapper
+# android-scrapper
+
+Script collections used for educational and research purposes only.
 
 Required Python version: `3`
 
