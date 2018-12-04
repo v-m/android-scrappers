@@ -2,6 +2,7 @@
 
 import datetime
 import json
+import os
 import sys
 
 import urllib3
@@ -107,6 +108,14 @@ def persist_apps(file, apps):
         json.dump(apps, fp)
 
 
+def load_apps(file):
+    if os.path.exists(file):
+        with open(file, "r") as fp:
+            return json.load(fp)
+
+    return None
+
+
 def init(file, nb_apps, author):
     start_time = datetime.datetime.now()
 
@@ -116,7 +125,7 @@ def init(file, nb_apps, author):
         "_date": str(datetime.datetime.now()),
         "_author": author,
         "_elapsed": None,
-        "apps": []
+        "apps": {}
     }
 
     persist_apps(file, apps)

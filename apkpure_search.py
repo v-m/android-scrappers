@@ -84,7 +84,7 @@ if __name__ == '__main__':
                               app_href, args.latest)
 
             if app is not None:
-                apps['apps'].append(app)
+                apps['apps'][app['href'].split("/")[-1]] = app
                 apps_set.add(app_title)
 
             apps['_elapsed'] = str(datetime.datetime.now() - start_time)

@@ -26,9 +26,16 @@ if __name__ == '__main__':
         print("Working dir exists and is not a directory!")
         sys.exit(1)
 
-    for app in js['apps']:
-        package_name = app['href'].split("/")[-1]
+    for package_name in js['apps']:
+        print(package_name)
+
+        if "." not in package_name:
+            continue
+
+        # package_name = app['href'].split("/")[-1]
         package_folder = os.path.join(args.working_folder, "{}_app".format(package_name))
+
+        app = js['apps'][package_name]
 
         if not os.path.exists(package_folder):
             os.makedirs(package_folder)
