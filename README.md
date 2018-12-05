@@ -1,4 +1,4 @@
-# android-scrapper
+# android-scrappers
 
 Script collections used for educational and research purposes only.
 

@@ -51,6 +51,7 @@ if __name__ == '__main__':
                                              download_link TEXT);""")
 
         db.execute("""CREATE INDEX versions_index ON versions(id);""")
+        db.execute("""CREATE INDEX apps_package ON apps(package);""")
 
         db.commit()
 
