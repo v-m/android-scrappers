@@ -52,7 +52,10 @@ if __name__ == '__main__':
             print("...Not found")
             continue
 
-        app = proceed_app(*app_infos, app_href, args.latest)
+        try:
+            app = proceed_app(*app_infos, app_href, args.latest)
+        except:
+            apps = None
 
         if app is not None:
             apps['apps'][package] = app
