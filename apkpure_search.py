@@ -1,5 +1,4 @@
 """Download APKs from APKPure for a specific keyword serarch term"""
-
 __author__ = "Vincenzo Musco (http://www.vmusco.com)"
 __date__ = "2018-11-27"
 

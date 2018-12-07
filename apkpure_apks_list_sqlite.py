@@ -1,9 +1,9 @@
 """Download app informations (and download link) from APKPure for a specific list of app packages"""
-import datetime
-import os
-
 __author__ = "Vincenzo Musco (http://www.vmusco.com)"
 __date__ = "2018-11-27"
+
+import os
+import datetime
 
 import argparse
 import urllib3
